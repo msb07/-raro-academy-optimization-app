@@ -30,6 +30,8 @@ export const ColorResponsive = () => {
       setColor(colors[breakpointIndex]);
     };
 
+    alteraCor();
+
     window.addEventListener('resize', () => {
       clearTimeout(debounce.current);
       debounce.current = window.setTimeout(alteraCor, 500);
