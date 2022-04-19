@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef } from 'react';
+import { MutableRefObject, useEffect, useRef, useState } from 'react';
 import { useChat } from '../../contexts/chat.context';
 import { useScroll } from '../../hooks/useScroll';
 import { ChatMessage } from '../ChatMessage';
@@ -16,11 +16,13 @@ export const ChatMessageList = () => {
     updateEndOfScroll,
     getDistanceFromBottom,
   } = useScroll(scrollRef);
+  const [pagina, setPagina] = useState(1);
+  const containerRef = useRef(null);
 
-  // useEffect(() => {
-  //   scrollRef.current = document.querySelector('#mensagens');
-  //   lerNovasMensagens();
-  // }, []);
+  useEffect(() => {
+    scrollRef.current = document.querySelector('#mensagens');
+    lerNovasMensagens();
+  }, []);
 
   useEffect(() => {
     updateEndOfScroll();
@@ -44,18 +46,34 @@ export const ChatMessageList = () => {
     });
     setMensagens([...mensagens]);
   };
-  // memo no componente
+
+  useEffect(() => {
+    // Função do javascript que utilizei para observar quando o topo do chat está visível,
+    // assim que ele fica visível ocorre a chamada para a pŕoxima página
+
+    const intersectionObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setPagina((pagina) => pagina + 1);
+      }
+    });
+    if (containerRef.current)
+      intersectionObserver.observe(containerRef.current);
+
+    return () => intersectionObserver.disconnect();
+  }, []);
 
   return (
     <div
       id='mensagens'
       className='flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-purple scrollbar-thumb-rounded scrollbar-track-indigo-lighter scrollbar-w-2 scrolling-touch'
     >
+      <div ref={containerRef} className='h-10 w-full'></div>
       {[...mensagens]
-        // tira reverse
         .filter((mensagem) =>
           mensagem.texto.match(new RegExp(buscaMensagem, 'i'))
         )
+        .slice(0, pagina * 10)
+        .reverse()
         .map((mensagem) =>
           mensagem.autor.usuarioAtual ? (
             <MyChatMessage key={mensagem.id} mensagem={mensagem} />
@@ -63,6 +81,7 @@ export const ChatMessageList = () => {
             <ChatMessage key={mensagem.id} mensagem={mensagem} />
           )
         )}
+
       {!endOfScroll ? (
         <ChatMessageListBottomScrollButton
           onClick={() => lerNovasMensagens()}
